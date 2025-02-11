@@ -11,36 +11,8 @@ from nltk.tokenize import sent_tokenize, word_tokenize, MWETokenizer
 from tqdm import tqdm
 from typing import List
 import math
+from tokenizer import Tokenizer
 
-# Download NLTK data
-nltk.download('punkt')
-
-# Tokenizer Class
-class Tokenizer:
-    def __init__(self):
-        url_regex_pattern = r'https?:\/\/(?:www\.)?[-a-zA-Z0-9@:%._\+~#=]{1,256}\.[a-zA-Z0-9()]{1,6}\b(?:[-a-zA-Z0-9@:%_\\+.~#?&\/=]*)?'
-        hashtag_regex_pattern = r'#\w+'
-        mentions_regex_pattern = r'@\w+'
-        percentage_regex_pattern = r'\d+\s*\%'
-        range_regex_pattern = r'\d+\s*[-–]\s*\d+'
-        email_regex_pattern = r"\S+@\S+\.\S+"
-        self.place_holders = [
-            ["<URL>", url_regex_pattern],
-            ["<HASHTAG>", hashtag_regex_pattern],
-            ["<MENTION>", mentions_regex_pattern],
-            ["<PERCENTAGE>", percentage_regex_pattern],
-            ["<RANGE>", range_regex_pattern],
-            ["<MAILID>", email_regex_pattern]
-        ]
-        self.multi_word_tokenizer = MWETokenizer([('<URL>',), ('<HASHTAG>',), ('<MENTION>',), ('<PERCENTAGE>',), ('<RANGE>',), ('<MAILID>',)], separator='')
-
-    def tokenize(self, text: str) -> List[List[str]]:
-        for substitution, pattern in self.place_holders:
-            text = re.sub(pattern, substitution, text)
-        return [self.multi_word_tokenizer.tokenize(word_tokenize(sentence)) for sentence in sent_tokenize(text)]
-    
-    def split_into_sentences(self, text: str) -> List[str]:
-        return sent_tokenize(text)
 
 class LSTMLanguageModel(nn.Module):
     def __init__(self, vocab_size, embed_dim, hidden_dim):
@@ -266,29 +238,3 @@ class LanguageModel:
         top_k_probs = top_k_probs[0].tolist()
 
         return list(zip(top_k_words, top_k_probs))
-
-def main():
-    parser = argparse.ArgumentParser(description="Language Model Trainer and Evaluator")
-    parser.add_argument("corpus_path", type=str, help="Path to the corpus file")
-    parser.add_argument("n", type=int, help="n-gram size")
-    parser.add_argument("--train", action="store_true", help="Train the model")
-    parser.add_argument("--evaluate", action="store_true", help="Evaluate the model")
-    parser.add_argument("--predict", action="store_true", help="Predict next word")
-    args = parser.parse_args()
-    lm = LanguageModel(args.corpus_path, args.n)
-    lm.train()
-    if args.evaluate:
-        lm.write_perplexity_to_file()
-    if args.predict:
-        while True:
-            sentence = input("Enter a sentence (or 'exit' to quit): ")
-            if sentence.lower() == 'exit':
-                break
-            k = int(input("Enter the number of candidates (k): "))
-            candidates = lm.predict_next_word(sentence, k)
-            print("Top candidates for the next word:")
-            for word, prob in candidates:
-                print(f"{word}: {prob:.4f}")
-
-if __name__ == "__main__":
-    main()
