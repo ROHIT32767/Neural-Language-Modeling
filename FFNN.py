@@ -10,6 +10,7 @@ import nltk
 from nltk.tokenize import sent_tokenize, word_tokenize, MWETokenizer
 from tqdm import tqdm
 from typing import List
+import math
 
 # Download NLTK data
 nltk.download('punkt')
@@ -123,11 +124,53 @@ class LanguageModel:
         torch.save(self.model.state_dict(), model_save_path)
         print(f"Model saved to {model_save_path}")
 
+    def compute_perplexity(self, sentence):
+        tokenized_sentence = self.tokenizer.tokenize(sentence)[0]
+        if len(tokenized_sentence) < self.n:
+            return float('inf')  
+        ngrams = []
+        for i in range(len(tokenized_sentence) - self.n + 1):
+            ngrams.append((tuple(tokenized_sentence[i:i+self.n-1]), tokenized_sentence[i+self.n-1]))
+        X, y = self.encode_data(ngrams)
+        with torch.no_grad():
+            logits = self.model(X)
+            probs = torch.softmax(logits, dim=1)
+            perplexity = torch.exp(nn.functional.cross_entropy(logits, y)).item()
+        return perplexity
+
+    def save_perplexities_to_file(self, sentences, file_path):
+        perplexities = []
+        for sentence in sentences:
+            perplexity = self.compute_perplexity(sentence)
+            perplexities.append(perplexity)
+        avg_perplexity = sum(perplexities) / len(perplexities)
+        with open(file_path, 'w') as f:
+            f.write(f"{avg_perplexity}\n")
+            for sentence, perplexity in zip(sentences, perplexities):
+                f.write(f"{sentence}\t{perplexity}\n")
+
+    def predict_next_word(self, sentence, k=5):
+        tokenized_sentence = self.tokenizer.tokenize(sentence)[0]
+        if len(tokenized_sentence) < self.n - 1:
+            return "Input sentence is too short for the n-gram model."
+        context = tokenized_sentence[-(self.n - 1):]
+        context_indices = [self.vocab.get(word, self.vocab["<unk>"]) for word in context]
+        X = torch.tensor([context_indices], dtype=torch.long)
+        with torch.no_grad():
+            logits = self.model(X)
+            probs = torch.softmax(logits, dim=1)
+            top_k_probs, top_k_indices = torch.topk(probs, k, dim=1)
+        top_k_words = [self.idx_to_word[idx.item()] for idx in top_k_indices[0]]
+        top_k_probs = top_k_probs[0].tolist()
+        return list(zip(top_k_words, top_k_probs))
+
 def main():
     parser = argparse.ArgumentParser(description="Language Model Trainer and Evaluator")
     parser.add_argument("corpus_path", type=str, help="Path to the corpus file")
     parser.add_argument("n", type=int, help="n-gram size")
     parser.add_argument("--train", action="store_true", help="Train the model")
+    parser.add_argument("--evaluate", action="store_true", help="Evaluate the model")
+    parser.add_argument("--predict", action="store_true", help="Predict next word")
     args = parser.parse_args()
 
     lm = LanguageModel(args.corpus_path, args.n)
@@ -135,6 +178,28 @@ def main():
     if args.train:
         print("Training the model...")
         lm.train()
+
+    if args.evaluate:
+        print("Evaluating the model...")
+        lm.train()
+        sentences = lm.load_corpus()
+        train_sentences, test_sentences = train_test_split(sentences, test_size=0.2, random_state=42)
+        lm.save_perplexities_to_file(train_sentences, "train_perplexities.txt")
+        lm.save_perplexities_to_file(test_sentences, "test_perplexities.txt")
+        print("Perplexities saved to train_perplexities.txt and test_perplexities.txt")
+
+    if args.predict:
+        print("Next word prediction mode. Enter a sentence to predict the next word.")
+        lm.train()  # Ensure the model is trained
+        while True:
+            sentence = input("Enter a sentence (or 'exit' to quit): ")
+            if sentence.lower() == 'exit':
+                break
+            k = int(input("Enter the number of candidates (k): "))
+            candidates = lm.predict_next_word(sentence, k)
+            print("Top candidates for the next word:")
+            for word, prob in candidates:
+                print(f"{word}: {prob:.4f}")
 
 if __name__ == "__main__":
     main()
