@@ -1,5 +1,3 @@
-# scores.py
-
 import argparse
 from FFNN import LanguageModel as FFNNLanguageModel
 from RNN import LanguageModel as RNNLanguageModel

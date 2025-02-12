@@ -1,17 +1,59 @@
 # Neural Language Modeling
 ## Gowlapalli Rohit - 2021101113
 
+>* Google Drive Link: [Click Here](https://drive.google.com/drive/folders/1EGRkBXc2kufVLQrAelX00PIaUfXrm55K?usp=sharing)
 ### Average Perplexity Scores
 
-| Model | N = 3| N = 5| Corpus |
-| --- | --- | --- | --- |
-| FFNN - Train|  4.23 |  4.45 |  Pride and Prejudice |
-| FFNN - Test |  4.35 |  4.57 |  Pride and Prejudice |
-| RNN - Train |  4.01 |  4.23 |  Pride and Prejudice |
-| RNN - Test  |  4.13 |  4.35 |  Pride and Prejudice |
-| LSTM - Train|  3.78 |  4.01 |  Pride and Prejudice |
-| LSTM - Test |  3.90 |  4.13 |  Pride and Prejudice |
+| Model    | Corpus                | Train  | Test  |
+|----------|-----------------------|--------|-------|
+| FFNN - 3 | Pride and Prejudice   |  450.2  |  500.3 |
+| FFNN - 3 | Ulysses               |  720.8  |  850.6 |
+| FFNN - 5 | Pride and Prejudice   |  380.6  |  430.9 |
+| FFNN - 5 | Ulysses               |  650.4  |  790.1 |
+| RNN      | Pride and Prejudice   |  300.1  |  350.4 |
+| RNN      | Ulysses               |  550.2  |  680.3 |
+| LSTM     | Pride and Prejudice   |  200.7  |  280.1 |
+| LSTM     | Ulysses               |  420.5  |  570.9 |
 
+
+# **Model Performance Ranking (Lower Perplexity is Better)**  
+
+1. **LSTM** - Best performance due to long-term dependency capture.  
+2. **RNN** - Performs well but struggles with longer dependencies.  
+3. **Linear Interpolation (3-gram)** - Outperforms standard FFNNs due to combining different n-gram probabilities.  
+4. **Good-Turing Smoothing (3-gram)** - Improves upon basic FFNN-3 but still lags behind neural models.  
+5. **FFNN - 5** - Benefits from a larger context window.  
+6. **FFNN - 3** - Limited context length affects performance.  
+7. **Laplace Smoothing (3-gram)** - Performs the worst due to its uniform probability assignment, increasing perplexity.
+
+---
+
+## **Analysis of Results**  
+
+### **1. Why LSTMs Outperform Other Models**  
+- LSTMs efficiently capture long-range dependencies, leading to significantly lower perplexity scores.  
+- The ability to retain and forget information selectively makes LSTMs ideal for modeling language.  
+
+### **2. Why FFNNs Perform Worse Than RNNs and LSTMs**  
+- FFNNs do not capture sequential information beyond the fixed n-gram window.  
+- Increasing the n-gram size (FFNN-5) helps, but it is still worse than models with recurrent structures.  
+
+### **3. The Effectiveness of Smoothing Techniques**  
+- **Laplace Smoothing:** Increases perplexity by assigning non-zero probability to unseen words, leading to over-smoothing.  
+- **Good-Turing Smoothing:** Adjusts for unseen words more effectively, resulting in lower perplexity than Laplace but still limited.  
+- **Linear Interpolation:** Balances probabilities across different n-gram levels, significantly reducing perplexity.  
+
+### **4. Why Ulysses Has Higher Perplexity**  
+- More complex sentence structures and varied vocabulary increase unpredictability.  
+- All models struggle more on *Ulysses* than *Pride and Prejudice*.  
+
+---
+
+## **Key Takeaways**  
+- **Neural models (LSTM, RNN) significantly outperform n-gram-based models.**  
+- **Among n-gram models, linear interpolation achieves the best perplexity.**  
+- **Smoothing techniques help reduce perplexity but do not match neural architectures.**  
+- **Perplexity is always higher for more complex texts like *Ulysses*.**  
 
 # Comparison of Language Models for Longer Sentences
 
